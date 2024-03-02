@@ -44,6 +44,9 @@ body_settings = environment_setup.get_default_body_settings(
     global_frame_origin,
     global_frame_orientation)
 
+# Use nrlmsise00
+body_settings.get( "Earth" ).atmosphere_settings = environment_setup.atmosphere.nrlmsise00()
+
 # Create system of selected celestial bodies
 bodies = environment_setup.create_system_of_bodies(body_settings)
 
