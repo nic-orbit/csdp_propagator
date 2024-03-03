@@ -130,11 +130,11 @@ acceleration_models = propagation_setup.create_acceleration_models(
 
 # Orbital elements
 Re = 6371000  # Earth radius in m
-aph = 450 * 10**3 + Re  # m
-per = 200 * 10**3 + Re  # m
+aph = 400 * 10**3 + Re  # m
+per = 300 * 10**3 + Re  # m
 sma = (aph+per)/2  # semi-major axis - m
 e = (aph-per)/(aph+per)  # eccentricity
-i = np.deg2rad(80)  # inclination - rad
+i = np.deg2rad(81)  # inclination - rad
 ta = np.deg2rad(0)  # true anomaly - rad
 raan = np.deg2rad(0)  # right ascension of ascending node - rad
 aop = np.deg2rad(0)  # argument of periapsis - rad
