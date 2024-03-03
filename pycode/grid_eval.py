@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from typing import cast
+import pandas as pd
 
 class AtmospherePackage:
     """
@@ -53,6 +54,7 @@ class AltitudeSection:
         self.number_of_points = points.shape[0]
         self.packages = []
         self.coverage_matrix = np.array([None])
+        self.coverage_percentage = 0
         self.d_lat = 0
         self.d_lon = 0
     
@@ -96,6 +98,9 @@ class AltitudeSection:
                 data[i, j] = self.packages[i * self.number_of_longitude_sections + j].number_of_points
         
         self.coverage_matrix = data.astype(int)
+        # count packages that have at least one point
+        self.coverage_percentage = np.count_nonzero(data) / (len(self.packages)) * 100
+        print( f'Coverage percentage: {self.coverage_percentage}%')
     
     def plot_coverage(self, show_plot:bool=True):
 
@@ -136,6 +141,7 @@ class AltitudeSection:
         # Show the plot
         if show_plot:
             plt.show()
+
 
 class AtmosphereGrid:
     def __init__(self, h_low_bound, h_high_bound, d_h, d_lat, d_lon) -> None:
@@ -222,9 +228,29 @@ class GridCoverageAnalyzer:
             print(f'  Number of packages: {len(altitude_section.packages)}')
             print(f'  Number of latitude sections: {altitude_section.number_of_latitude_sections}')
             print(f'  Number of longitude sections: {altitude_section.number_of_longitude_sections}')
-            # print(f'  Coverage matrix shape: {altitude_section.coverage_matrix.shape}')
-            # print(f'  Coverage matrix: \n{altitude_section.coverage_matrix}')
+            print(f'  Coverage percentage: {altitude_section.coverage_percentage}%')
             print('')
+
+    def get_statistics_dataframe(self):
+        data = {
+            'Altitude Section': [],
+            'Number of Points': [],
+            'Number of Packages': [],
+            'Number of Latitude Sections': [],
+            'Number of Longitude Sections': [],
+            'Coverage Percentage': []
+            }
+    
+        for i, altitude_section in enumerate(self.list_of_altitude_sections):
+            data['Altitude Section'].append(f" {altitude_section.h_min / 1000} to {altitude_section.h_max / 1000} km")
+            data['Number of Points'].append(altitude_section.points.shape[0])
+            data['Number of Packages'].append(len(altitude_section.packages))
+            data['Number of Latitude Sections'].append(altitude_section.number_of_latitude_sections)
+            data['Number of Longitude Sections'].append(altitude_section.number_of_longitude_sections)
+            data['Coverage Percentage'].append(altitude_section.coverage_percentage)
+        
+        df = pd.DataFrame(data)
+        return df
 
     def plot_grid_coverage(self, onebyone:bool=False):
         if len(self.list_of_altitude_sections) == 0:
