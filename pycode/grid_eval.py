@@ -255,6 +255,12 @@ class GridCoverageAnalyzer:
         
         df = pd.DataFrame(data)
         return df
+    
+    def write_coverage_percentage_to_file(self, file_path:str):
+        df = self.get_statistics_dataframe()
+        df_filtered = df[['Altitude Section', 'Coverage Percentage']].transpose(copy=True)
+        df_filtered.to_csv(file_path + '_coverage_percentage.csv', index=False)
+        print('Coverage percentage written to file')
 
     def plot_grid_coverage(self, onebyone:bool=False):
         if len(self.list_of_altitude_sections) == 0:

@@ -24,6 +24,9 @@ my_analyzer.print_statistics()
 
 coverage_table = my_analyzer.get_statistics_dataframe()
 
-print(coverage_table)
+# print only 
+print(coverage_table[['Altitude Section', 'Number of Points', 'Coverage Percentage']])
+
+my_analyzer.write_coverage_percentage_to_file(file_path + "orbit01" )
 
 my_analyzer.plot_grid_coverage()
