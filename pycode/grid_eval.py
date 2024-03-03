@@ -3,8 +3,38 @@ import matplotlib.pyplot as plt
 from typing import cast
 
 class AtmospherePackage:
+    """
+    A class used to represent an Atmosphere Package.
+
+    ...
+
+    Attributes
+    ----------
+    h_min : float
+        minimum height of the atmosphere package
+    h_max : float
+        maximum height of the atmosphere package
+    lat_min : float
+        minimum latitude of the atmosphere package
+    lat_max : float
+        maximum latitude of the atmosphere package
+    lon_min : float
+        minimum longitude of the atmosphere package
+    lon_max : float
+        maximum longitude of the atmosphere package
+    points : np.array
+        array of points in the atmosphere package
+    number_of_points : int
+        total number of points in the atmosphere package
+    index : tuple
+        current index in the atmosphere package
+
+    Methods
+    -------
+    __init__(self, h_min:float, h_max:float, lat_min:float, lat_max:float, lon_min:float, lon_max:float, points:np.array) -> None:
+        Initializes the AtmospherePackage with the given parameters.
+    """
     def __init__(self, h_min:float, h_max:float, lat_min:float, lat_max:float, lon_min:float, lon_max:float, points:np.array) -> None:
-        self.h_min = h_min
         self.h_max = h_max
         self.lat_min = lat_min
         self.lat_max = lat_max

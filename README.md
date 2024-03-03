@@ -1,4 +1,4 @@
-NICK HAS FUNNY EARS
+NIC HAS FUNNY EARS
 
 Kind regards,
 
