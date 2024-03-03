@@ -22,4 +22,8 @@ my_analyzer.analyze()
 
 my_analyzer.print_statistics()
 
+coverage_table = my_analyzer.get_statistics_dataframe()
+
+print(coverage_table)
+
 my_analyzer.plot_grid_coverage()
