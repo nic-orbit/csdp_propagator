@@ -316,7 +316,7 @@ ax3.plot(time_hours, inclination)
 ax3.set_ylabel('Inclination [deg]')
 
 # Argument of Periapsis
-argument_of_periapsis = np.rad2deg(kepler_elements[:,3])
+argument_of_periapsis = np.rad2deg(np.unwrap(kepler_elements[:,3]))
 ax4.plot(time_hours, argument_of_periapsis)
 ax4.set_ylabel('Argument of Periapsis [deg]')
 
