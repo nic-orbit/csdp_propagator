@@ -55,6 +55,7 @@ class AltitudeSection:
         self.packages = []
         self.coverage_matrix = np.array([None])
         self.coverage_percentage = 0
+        self.number_of_empty_packages = 0
         self.d_lat = 0
         self.d_lon = 0
     
@@ -99,6 +100,7 @@ class AltitudeSection:
         
         self.coverage_matrix = data.astype(int)
         # count packages that have at least one point
+        self.number_of_empty_packages = len([p for p in self.packages if p.number_of_points == 0])
         self.coverage_percentage = np.count_nonzero(data) / (len(self.packages)) * 100
         print( f'Coverage percentage: {self.coverage_percentage}%')
     
@@ -236,6 +238,7 @@ class GridCoverageAnalyzer:
             'Altitude Section': [],
             'Number of Points': [],
             'Number of Packages': [],
+            'Number of empty Packages': [],
             'Number of Latitude Sections': [],
             'Number of Longitude Sections': [],
             'Coverage Percentage': []
@@ -245,6 +248,7 @@ class GridCoverageAnalyzer:
             data['Altitude Section'].append(f" {altitude_section.h_min / 1000} to {altitude_section.h_max / 1000} km")
             data['Number of Points'].append(altitude_section.points.shape[0])
             data['Number of Packages'].append(len(altitude_section.packages))
+            data['Number of empty Packages'].append(altitude_section.number_of_empty_packages)
             data['Number of Latitude Sections'].append(altitude_section.number_of_latitude_sections)
             data['Number of Longitude Sections'].append(altitude_section.number_of_longitude_sections)
             data['Coverage Percentage'].append(altitude_section.coverage_percentage)
