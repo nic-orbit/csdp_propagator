@@ -214,6 +214,18 @@ class GridCoverageAnalyzer:
             altitude_sec.calculate_coverage_matrix()
             self.list_of_altitude_sections.append(altitude_sec)
 
+    def print_statistics(self):
+        print('Printing statistics ...')
+        for i, altitude_section in enumerate(self.list_of_altitude_sections):
+            print(f'Altitude section {i+1} of {len(self.list_of_altitude_sections)}')
+            print(f'  Number of points: {altitude_section.points.shape[0]}')
+            print(f'  Number of packages: {len(altitude_section.packages)}')
+            print(f'  Number of latitude sections: {altitude_section.number_of_latitude_sections}')
+            print(f'  Number of longitude sections: {altitude_section.number_of_longitude_sections}')
+            # print(f'  Coverage matrix shape: {altitude_section.coverage_matrix.shape}')
+            # print(f'  Coverage matrix: \n{altitude_section.coverage_matrix}')
+            print('')
+
     def plot_grid_coverage(self, onebyone:bool=False):
         if len(self.list_of_altitude_sections) == 0:
             raise ValueError('No altitude sections to plot.  \nRun analyze() method first.')

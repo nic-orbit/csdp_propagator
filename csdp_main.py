@@ -20,4 +20,6 @@ my_analyzer = ge.GridCoverageAnalyzer(my_atm_grid, satellite_orbit)
 
 my_analyzer.analyze()
 
+my_analyzer.print_statistics()
+
 my_analyzer.plot_grid_coverage()
