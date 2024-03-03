@@ -24,8 +24,8 @@ import pycode.plot_gen as plot_gen
 spice.load_standard_kernels()
 
 # Set simulation start and end epochs
-simulation_start_epoch = DateTime(2024, 2, 26).epoch()
-simulation_end_epoch   = DateTime(2024, 2, 29).epoch()
+simulation_start_epoch = DateTime(2029, 10, 1).epoch()
+simulation_end_epoch   = DateTime(2029, 10, 4).epoch()
 
 ## Environment setup
 
@@ -61,9 +61,9 @@ bodies.create_empty_body("FranzSat")
 bodies.get("FranzSat").mass = 60.0
 
 # Create aerodynamic coefficient interface settings, and add to vehicle
-reference_area = 0.3  # Average projection area of the sat
+reference_area = 0.4  # Average projection area of the sat
 # reference_area = (4*0.3*0.1+2*0.1*0.1)/4  # Average projection area of a 3U CubeSat
-drag_coefficient = 1.2
+drag_coefficient = 2.2
 aero_coefficient_settings = environment_setup.aerodynamic_coefficients.constant(
     reference_area, [drag_coefficient, 0, 0]
 )
@@ -73,9 +73,9 @@ environment_setup.add_aerodynamic_coefficient_interface(
 # To account for the pressure of the solar radiation on the satellite, let's add another interface. This takes a radiation pressure coefficient of 1.2, and a radiation area of 4m$^2$. This interface also accounts for the variation in pressure cause by the shadow of Earth.
 
 # Create radiation pressure settings, and add to vehicle
-reference_area_radiation = 0.3  # Average projection area of the sat
+reference_area_radiation = 0.4  # Average projection area of the sat
 # reference_area_radiation = (4*0.3*0.1+2*0.1*0.1)/4  # Average projection area of a 3U CubeSat
-radiation_pressure_coefficient = 1.2
+radiation_pressure_coefficient = 2.2
 occulting_bodies_dict = dict()
 occulting_bodies_dict[ "Sun" ] = [ "Earth" ]
 vehicle_target_settings = environment_setup.radiation_pressure.cannonball_radiation_target(
