@@ -24,6 +24,6 @@ my_analyzer.print_statistics()
 
 coverage_table = my_analyzer.get_statistics_dataframe()
 
-print(coverage_table)
+print(coverage_table[['Number of Packages', 'Number of empty Packages', 'Coverage Percentage']])
 
 my_analyzer.plot_grid_coverage()
