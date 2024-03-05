@@ -37,6 +37,7 @@ class AtmospherePackage:
     """
     def __init__(self, h_min:float, h_max:float, lat_min:float, lat_max:float, lon_min:float, lon_max:float, points:np.array) -> None:
         self.h_max = h_max
+        self.h_min = h_min
         self.lat_min = lat_min
         self.lat_max = lat_max
         self.lon_min = lon_min
@@ -44,6 +45,18 @@ class AtmospherePackage:
         self.points = points
         self.number_of_points = points.shape[0]
         self.index = (0,0)
+        self.solar_time_coverage()
+
+    def info(self):
+        print(f'AtmospherePackage: \n {self.h_min} to {self.h_max} km; \n {self.lat_min} to {self.lat_max} rad; \n {self.lon_min} to {self.lon_max} rad; \n {self.number_of_points} points; \n first point timestamp: {self.points[0][0]}')
+
+    def solar_time_coverage(self):
+        times = set(self.points[:, 7])
+        self.slts_covered = times
+        self.slts_coverage_percentage = len(times) / 24 * 100
+        # print('times covered: ', times)
+        # print('number of times covered: ', len(times))
+
 
 class AltitudeSection:
     
@@ -58,6 +71,8 @@ class AltitudeSection:
         self.number_of_empty_packages = 0
         self.d_lat = 0
         self.d_lon = 0
+        self.slt_count_std = 0
+        self.slt_count_avg = 0
     
     def sort_points_into_packages(self, d_lat:float, d_lon:float):
         print('sorting points into packages ...')
@@ -93,6 +108,7 @@ class AltitudeSection:
         if self.d_lat == 0 or self.d_lon == 0:
             raise ValueError('Latitude and longitude increments must be set before calculating point density matrix.  \nRun sort_points_into_packages() method first.')
 
+        # create matrix with number of points in each package
         data = np.zeros((self.number_of_latitude_sections, self.number_of_longitude_sections))
         for i in range(self.number_of_latitude_sections):
             for j in range(self.number_of_longitude_sections):
@@ -103,6 +119,14 @@ class AltitudeSection:
         self.number_of_empty_packages = len([p for p in self.packages if p.number_of_points == 0])
         self.coverage_percentage = np.count_nonzero(data) / (len(self.packages)) * 100
         print( f'Coverage percentage: {self.coverage_percentage}%')
+
+    def calculate_slt_statistics(self):
+        slt_count_avg = []
+        for pkg in self.packages:
+            slt_count_avg.append(len(pkg.slts_covered))
+        
+        self.slt_count_std = np.round(np.std(slt_count_avg), 3)
+        self.slt_count_avg = np.round(np.mean(slt_count_avg), 1)
     
     def plot_coverage(self, show_plot:bool=True):
 
@@ -146,6 +170,7 @@ class AltitudeSection:
 
 
 class AtmosphereGrid:
+
     def __init__(self, h_low_bound, h_high_bound, d_h, d_lat, d_lon) -> None:
         self.h_low_bound = h_low_bound
         self.h_high_bound = h_high_bound
@@ -173,7 +198,7 @@ class SatelliteOrbit:
 
     def generate_random_data(self, k:int):
         # Generating random data for demonstration
-        self.timestamps = np.linspace(0, 3600, k)  # k timestamps evenly spaced over 1 hour (3600 seconds)
+        self.timestamps = np.linspace(0, 3600, k)  # k timestamps evenly spaced over 3600 hours
         self.x_coords = np.random.uniform(-1000, 1000, k)
         self.y_coords = np.random.uniform(-1000, 1000, k)
         self.z_coords = np.random.uniform(-100, 100, k)
@@ -182,18 +207,28 @@ class SatelliteOrbit:
         self.altitudes = np.random.uniform(100, 600, k)
 
     def read_from_files(self, file_path:str):
-        self.timestamps = np.load(file_path + 'tiome_hours.npy')
-        # print(len(self.timestamps))
+        self.timestamps = np.load(file_path + 'tiome_hours.npy') # in hours
         self.x_coords = np.random.uniform(-1000, 1000, len(self.timestamps))
         self.y_coords = np.random.uniform(-1000, 1000, len(self.timestamps))
         self.z_coords = np.random.uniform(-100, 100, len(self.timestamps))
         self.latitudes = np.load(file_path + 'latitude.npy')
         self.longitudes = np.load(file_path + 'longitude.npy')
         self.altitudes = np.load(file_path + 'altitude.npy')
-        
-        self.points = np.column_stack((self.timestamps, self.x_coords, self.y_coords, self.z_coords, self.latitudes, self.longitudes, self.altitudes))
+        self.local_times = []  
+        self.calculate_local_time()
+        self.create_points_array()
 
+    def create_points_array(self):
+        self.points = np.column_stack((self.timestamps, self.x_coords, self.y_coords, self.z_coords, self.latitudes, self.longitudes, self.altitudes, self.local_times))
         print('satellite orbit created')
+
+    def calculate_local_time(self):
+        # Calculate (relative) local time from longitude; 
+        # start at 0 hours and 0 degree longitude (greenwich meridian) is used here (irrelevant for this project, since relative local time is used)
+        deg_to_rad = np.pi / 180
+        for i in range(len(self.longitudes)):
+            slt = np.round((self.timestamps[i] + (self.longitudes[i] / (15 * deg_to_rad))) % 24, 0) # solar local time
+            self.local_times.append(slt)
 
     def sample(self, k:int):
         self.points = self.points[::k]
@@ -220,6 +255,7 @@ class GridCoverageAnalyzer:
             altitude_sec = AltitudeSection(h_min, h_max, points)
             altitude_sec.sort_points_into_packages(self.atm_grid.d_lat, self.atm_grid.d_lon)
             altitude_sec.calculate_coverage_matrix()
+            altitude_sec.calculate_slt_statistics()
             self.list_of_altitude_sections.append(altitude_sec)
 
     def print_statistics(self):
@@ -231,6 +267,7 @@ class GridCoverageAnalyzer:
             print(f'  Number of latitude sections: {altitude_section.number_of_latitude_sections}')
             print(f'  Number of longitude sections: {altitude_section.number_of_longitude_sections}')
             print(f'  Coverage percentage: {altitude_section.coverage_percentage}%')
+            print(f'  Average number of Solar local times covered per Package: {altitude_section.slt_count_avg} +/- {altitude_section.slt_count_std} hours')
             print('')
 
     def get_statistics_dataframe(self):
