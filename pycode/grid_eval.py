@@ -235,11 +235,12 @@ class SatelliteOrbit:
         print('satellite orbit sampled')
 
     def plot_altitude_slt_scatter(self):
-        plt.plot(self.local_times, self.altitudes, marker='o', linestyle='none')
-        plt.xlabel('Local Solar Time')
-        plt.ylabel('Altitude')
+        plt.plot(self.local_times, self.altitudes / 1000, marker='o', linestyle='none')
+        plt.xlabel('Local Solar Time [hours]')
+        plt.ylabel('Altitude [km]')
         plt.title('Altitude over Local Solar Time')
         plt.grid(True)
+        plt.tight_layout()
         plt.show()
         
 
