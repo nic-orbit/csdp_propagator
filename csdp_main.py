@@ -30,3 +30,4 @@ print(coverage_table[['Altitude Section', 'Number of Points', 'Coverage Percenta
 my_analyzer.write_coverage_percentage_to_file(file_path + "orbit01" )
 
 my_analyzer.plot_grid_coverage()
+# satellite_orbit.plot_altitude_slt_scatter()

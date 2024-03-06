@@ -214,7 +214,7 @@ class SatelliteOrbit:
         self.latitudes = np.load(file_path + 'latitude.npy')
         self.longitudes = np.load(file_path + 'longitude.npy')
         self.altitudes = np.load(file_path + 'altitude.npy')
-        self.local_times = []  
+        self.local_times = np.array([]) 
         self.calculate_local_time()
         self.create_points_array()
 
@@ -227,12 +227,20 @@ class SatelliteOrbit:
         # start at 0 hours and 0 degree longitude (greenwich meridian) is used here (irrelevant for this project, since relative local time is used)
         deg_to_rad = np.pi / 180
         for i in range(len(self.longitudes)):
-            slt = np.round((self.timestamps[i] + (self.longitudes[i] / (15 * deg_to_rad))) % 24, 0) # solar local time
-            self.local_times.append(slt)
+            slt = np.round((self.timestamps[i] + (self.longitudes[i] / (15 * deg_to_rad))) % 24, 5) # solar local time
+            self.local_times = np.append(self.local_times, slt)
 
     def sample(self, k:int):
         self.points = self.points[::k]
         print('satellite orbit sampled')
+
+    def plot_altitude_slt_scatter(self):
+        plt.plot(self.local_times, self.altitudes, marker='o', linestyle='none')
+        plt.xlabel('Local Solar Time')
+        plt.ylabel('Altitude')
+        plt.title('Altitude over Local Solar Time')
+        plt.grid(True)
+        plt.show()
         
 
 class GridCoverageAnalyzer:
