@@ -1,14 +1,17 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from typing import cast
+import os
 
 import pycode.grid_eval as ge
 
-file_path = r"data\\"
+orbit_name = "orbit_200_550_81_1s_1month"
+
+file_path = os.path.join("data", orbit_name)
+load_path = os.path.join(file_path, orbit_name + '.npz')
 
 satellite_orbit = ge.SatelliteOrbit()
-satellite_orbit.read_from_files(file_path)
-# satellite_orbit.sample(100)
+satellite_orbit.read_from_files(load_path, sample_rate=0.01)
 
 deg_to_rad = np.pi / 180
 
@@ -27,7 +30,8 @@ coverage_table = my_analyzer.get_statistics_dataframe()
 # print only 
 print(coverage_table[['Altitude Section', 'Number of Points', 'Coverage Percentage']])
 
-my_analyzer.write_coverage_percentage_to_file(file_path + "orbit01" )
+my_analyzer.write_coverage_percentage_to_file(file_path)
 
-my_analyzer.plot_grid_coverage()
-# satellite_orbit.plot_altitude_slt_scatter()
+# my_analyzer.plot_grid_coverage()
+
+my_analyzer.plot_slt_coverage()

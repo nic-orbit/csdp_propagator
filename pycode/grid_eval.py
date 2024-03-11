@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from typing import cast
 import pandas as pd
+import os
 
 class AtmospherePackage:
     """
@@ -48,7 +49,9 @@ class AtmospherePackage:
         self.solar_time_coverage()
 
     def info(self):
-        print(f'AtmospherePackage: \n {self.h_min} to {self.h_max} km; \n {self.lat_min} to {self.lat_max} rad; \n {self.lon_min} to {self.lon_max} rad; \n {self.number_of_points} points; \n first point timestamp: {self.points[0][0]}')
+        print(f'AtmospherePackage: \n {self.h_min} to {self.h_max} km; \n {self.lat_min} to {self.lat_max} rad; \n {self.lon_min} to {self.lon_max} rad; \n {self.number_of_points} points; \n first point timestamp: {self.points[0][0]} \n'
+              + 'Solar time coverage: ' + str(self.slts_covered) + '\n' + 'Coverage percentage: ' + str(self.slts_coverage_percentage) + '%\n'
+              + 'times: ' + str(self.points[:, 7]))
 
     def solar_time_coverage(self):
         times = set(self.points[:, 7])
@@ -73,6 +76,8 @@ class AltitudeSection:
         self.d_lon = 0
         self.slt_count_std = 0
         self.slt_count_avg = 0
+        self.slts = set()
+        self.description = f'Altitude section from {h_min} to {h_max} km'
     
     def sort_points_into_packages(self, d_lat:float, d_lon:float):
         print('sorting points into packages ...')
@@ -84,18 +89,18 @@ class AltitudeSection:
         self.number_of_longitude_sections = number_of_longitude_sections
 
         for i in range(number_of_latitude_sections):
-            # latitude from pi/2 to -pi/2 / 90 to -90 deg
+            # latitude from pi/2 to -pi/2 or 90 to -90 deg
             lat_max = np.pi/2 - i * d_lat
             lat_min = np.pi/2 - (i + 1) * d_lat
             # print(lat_min, lat_max)
             for j in range(number_of_longitude_sections):
-                # longitude from -pi to pi / -180 to 180 deg
+                # longitude from -pi to pi or -180 to 180 deg
                 lon_min = -np.pi + j * d_lon
                 lon_max = -np.pi + (j + 1) * d_lon
                 
                 points = self.points[(self.points[:, 4] >= lat_min) & (self.points[:, 4] < lat_max) & (self.points[:, 5] >= lon_min) & (self.points[:, 5] < lon_max)]
 
-                # print('  ', lon_min, lon_max, '---', points.shape[0])
+                # print('  ', lon_min, lon_max, '---', points[:,7])
 
                 atm_p = AtmospherePackage(self.h_min, self.h_max, lat_min, lat_max, lon_min, lon_max, points)
                 atm_p.index = (i, j) 
@@ -124,6 +129,9 @@ class AltitudeSection:
         slt_count_avg = []
         for pkg in self.packages:
             slt_count_avg.append(len(pkg.slts_covered))
+            # print('  ', pkg.index, '---', len(pkg.slts_covered), '---', pkg.slts_covered)
+            self.slts = self.slts.union(pkg.slts_covered)
+            # print('  ', self.slts)
         
         self.slt_count_std = np.round(np.std(slt_count_avg), 3)
         self.slt_count_avg = np.round(np.mean(slt_count_avg), 1)
@@ -206,17 +214,39 @@ class SatelliteOrbit:
         self.longitudes = np.random.uniform(-180, 180, k)
         self.altitudes = np.random.uniform(100, 600, k)
 
-    def read_from_files(self, file_path:str):
-        self.timestamps = np.load(file_path + 'tiome_hours.npy') # in hours
-        self.x_coords = np.random.uniform(-1000, 1000, len(self.timestamps))
-        self.y_coords = np.random.uniform(-1000, 1000, len(self.timestamps))
-        self.z_coords = np.random.uniform(-100, 100, len(self.timestamps))
-        self.latitudes = np.load(file_path + 'latitude.npy')
-        self.longitudes = np.load(file_path + 'longitude.npy')
-        self.altitudes = np.load(file_path + 'altitude.npy')
-        self.local_times = np.array([]) 
+    def read_from_files(self, load_path:str, sample_rate:int = 0):
+        loaded = np.load(load_path)
+        self.timestamps = loaded['time'] # in hours
+        self.x_coords = np.zeros(len(self.timestamps))
+        self.y_coords = np.zeros(len(self.timestamps))
+        self.z_coords = np.zeros(len(self.timestamps))
+        self.latitudes = loaded['lat']
+        self.longitudes = loaded['lon']
+        self.altitudes = loaded['alt']
+        self.local_times = np.zeros(len(self.timestamps))
+
+        original_sample_rate =  len(self.timestamps) / ((self.timestamps[-1] - self.timestamps[0]) * 3600 ) # in Hz
+        print(f'Original sample rate: {original_sample_rate} Hz')
+        if sample_rate > original_sample_rate:
+            raise ValueError('Sample rate cannot be higher than original sample rate.')
+        
+        if sample_rate == 0:
+            print('No sampling')
+        else:
+            print(f'Sampling at {sample_rate} Hz')
+            self.timestamps = self.timestamps[::int(original_sample_rate / sample_rate)]
+            self.x_coords = self.x_coords[::int(original_sample_rate / sample_rate)]
+            self.y_coords = self.y_coords[::int(original_sample_rate / sample_rate)]
+            self.z_coords = self.z_coords[::int(original_sample_rate / sample_rate)]
+            self.latitudes = self.latitudes[::int(original_sample_rate / sample_rate)]
+            self.longitudes = self.longitudes[::int(original_sample_rate / sample_rate)]
+            self.altitudes = self.altitudes[::int(original_sample_rate / sample_rate)]
+            self.local_times = np.zeros(len(self.timestamps))
+
         self.calculate_local_time()
         self.create_points_array()
+        
+        
 
     def create_points_array(self):
         self.points = np.column_stack((self.timestamps, self.x_coords, self.y_coords, self.z_coords, self.latitudes, self.longitudes, self.altitudes, self.local_times))
@@ -226,21 +256,38 @@ class SatelliteOrbit:
         # Calculate (relative) local time from longitude; 
         # start at 0 hours and 0 degree longitude (greenwich meridian) is used here (irrelevant for this project, since relative local time is used)
         deg_to_rad = np.pi / 180
-        for i in range(len(self.longitudes)):
-            slt = np.round((self.timestamps[i] + (self.longitudes[i] / (15 * deg_to_rad))) % 24, 5) # solar local time
-            self.local_times = np.append(self.local_times, slt)
+
+        # Calculate solar local time for each longitude
+        for i in range(len(self.timestamps)):
+            slt = np.round((self.timestamps[i] + (self.longitudes[i] / (15 * deg_to_rad))) % 24, 0) # solar local time
+            # print(slt)
+            if slt == 24:
+                slt = 0
+
+            self.local_times[i] = int(slt)
 
     def sample(self, k:int):
         self.points = self.points[::k]
         print('satellite orbit sampled')
 
-    def plot_altitude_slt_scatter(self):
-        plt.plot(self.local_times, self.altitudes, marker='o', linestyle='none')
-        plt.xlabel('Local Solar Time')
-        plt.ylabel('Altitude')
-        plt.title('Altitude over Local Solar Time')
-        plt.grid(True)
+    def plot_altitude_slt_scatter(self, lower_bound: int = 200000, upper_bound: int = 450000):
+        # Filter altitudes within the specified bounds
+        filtered_altitudes = []
+        filtered_local_times = []
+        for i in range(len(self.altitudes)):
+            if lower_bound <= self.altitudes[i] <= upper_bound:
+                filtered_altitudes.append(self.altitudes[i])
+                filtered_local_times.append(self.local_times[i])
+
+        # Plot altitude within lower_bound and upper_bound km over local solar time
+        fig, ax = plt.subplots()
+        ax.scatter(filtered_local_times, filtered_altitudes, c='r', marker='o')
+        ax.set_xlabel('Solar Local Time')
+        ax.set_ylabel('Altitude in m')
+        plt.title('Altitude over Solar Local Time')
+        plt.tight_layout()
         plt.show()
+
         
 
 class GridCoverageAnalyzer:
@@ -276,6 +323,7 @@ class GridCoverageAnalyzer:
             print(f'  Number of longitude sections: {altitude_section.number_of_longitude_sections}')
             print(f'  Coverage percentage: {altitude_section.coverage_percentage}%')
             print(f'  Average number of Solar local times covered per Package: {altitude_section.slt_count_avg} +/- {altitude_section.slt_count_std} hours')
+            print(f'  Solar times covered: {altitude_section.slts}')
             print('')
 
     def get_statistics_dataframe(self):
@@ -304,7 +352,7 @@ class GridCoverageAnalyzer:
     def write_coverage_percentage_to_file(self, file_path:str):
         df = self.get_statistics_dataframe()
         df_filtered = df[['Altitude Section', 'Coverage Percentage']].transpose(copy=True)
-        df_filtered.to_csv(file_path + '_coverage_percentage.csv', index=False)
+        df_filtered.to_csv(os.path.join(file_path,'coverage_percentage.csv'), index=False)
         print('Coverage percentage written to file')
 
     def plot_grid_coverage(self, onebyone:bool=False):
@@ -315,3 +363,34 @@ class GridCoverageAnalyzer:
             print(f'Plotting altitude section {i+1} of {len(self.list_of_altitude_sections)}')
             altitude_section.plot_coverage(show_plot=onebyone)
         plt.show() 
+
+    def plot_slt_coverage(self):
+        # Plot altitude sections over solar local time
+        
+        d = np.zeros((len(self.list_of_altitude_sections), 24))
+        
+        for i, altitude_section in enumerate(self.list_of_altitude_sections):
+            # print(altitude_section.slts)
+            for j in altitude_section.slts:
+                # print(j)
+                d[i, int(j)] = 1
+                
+        d = np.flipud(d) # flip matrix upside down to have lowest altitude at the bottom
+
+        fig, ax = plt.subplots()
+        im = ax.imshow(d, cmap='viridis', interpolation='nearest')
+
+        # Add legend annotations
+        legend_elements = [plt.Line2D([0], [0], marker='s', color='w', label='Covered', markerfacecolor='yellow', markersize=10),
+                   plt.Line2D([0], [0], marker='s', color='w', label='Not Covered', markerfacecolor='purple', markersize=10)]
+        ax.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, -0.25), ncol=2)
+
+
+        plt.yticks(np.arange(len(self.list_of_altitude_sections)), [f'{int(altitude_section.h_min / 1000)} to {int(altitude_section.h_max / 1000)} km' for altitude_section in reversed(self.list_of_altitude_sections)])
+        ax.set_xlabel('Solar Local Time')
+        ax.set_ylabel('Altitude Section')
+        plt.title('Solar Local Time Coverage')
+        # plt.colorbar(im)  # Add colorbar
+        plt.tight_layout()
+        plt.show()
+

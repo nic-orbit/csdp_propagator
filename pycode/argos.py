@@ -26,6 +26,21 @@ def nparray_saver(data_name: str, ndarray: np.ndarray[float]):
     np.save(file_path, ndarray)
     return
 
+def nparray_saver_npz(data_name: str, ndarray: np.ndarray[float]):
+    """Saves a numpy array to a .npy file in the 'data' folder in project root.
+
+    Arguments:
+        data_name: name of the data that is being saved.
+        ndarray: the numpy array to be saved.
+    """
+
+    # Create the path to the file to be saved
+    code_path = os.path.dirname(__file__)
+    main_path = os.path.dirname(code_path)
+    file_path = os.path.join(main_path, 'data', data_name + '.npz')
+    # Save the numpy array
+    np.savez(file_path, ndarray)
+    return
 
 def fig_saver(fig_topic: str, fig):
     """Saves a matplotlib figure to a .png file in the 'plots' folder in project root.

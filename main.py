@@ -18,14 +18,35 @@ from tudatpy.astro.element_conversion import keplerian_to_cartesian
 import pycode.argos as argos
 import pycode.plot_gen as plot_gen
 
+import os
+
+#######################
+# Input Section Start #
+#######################
+
 ## Configuration
+
+orbit_name = 'orbit_200_550_81_1s_1month'
+
+time_between_measurements = 1  # seconds don't go under 10 sec for one month of propagation otherwise it will take forever!!
+orbit_apoapsis = 550  # km
+orbit_periapsis = 200  # km
+orbit_inclination = 81  # deg
 
 # Load spice kernels
 spice.load_standard_kernels()
 
 # Set simulation start and end epochs
-simulation_start_epoch = DateTime(2029, 10, 1).epoch()
-simulation_end_epoch   = DateTime(2029, 10, 4).epoch()
+simulation_start_epoch = DateTime(2029, 9, 1).epoch()
+simulation_end_epoch   = DateTime(2029, 10, 1).epoch()
+
+#######################
+# Input Section Stop  #
+#######################
+
+# Create output directory
+os.makedirs(os.path.join("data", orbit_name), exist_ok=True)
+os.makedirs(os.path.join("plots", orbit_name), exist_ok=True)
 
 ## Environment setup
 
@@ -130,11 +151,11 @@ acceleration_models = propagation_setup.create_acceleration_models(
 
 # Orbital elements
 Re = 6371000  # Earth radius in m
-aph = 400 * 10**3 + Re  # m
-per = 300 * 10**3 + Re  # m
+aph = orbit_apoapsis * 10**3 + Re  # m
+per = orbit_periapsis * 10**3 + Re  # m
 sma = (aph+per)/2  # semi-major axis - m
 e = (aph-per)/(aph+per)  # eccentricity
-i = np.deg2rad(81)  # inclination - rad
+i = np.deg2rad(orbit_inclination)  # inclination - rad
 ta = np.deg2rad(0)  # true anomaly - rad
 raan = np.deg2rad(0)  # right ascension of ascending node - rad
 aop = np.deg2rad(0)  # argument of periapsis - rad
@@ -161,7 +182,8 @@ dependent_variables_to_save = [
 termination_condition = propagation_setup.propagator.time_termination(simulation_end_epoch)
 
 # Create numerical integrator settings
-fixed_step_size = 10.0
+# fixed_step_size = 10.0
+fixed_step_size = time_between_measurements
 integrator_settings = propagation_setup.integrator.runge_kutta_4(fixed_step_size)
 
 # Create propagation settings
@@ -236,16 +258,32 @@ longitude = dep_vars_array[:,8]  # Longitude in rad
 altitude = dep_vars_array[:,9]  # Altitude in m
 
 # Save arrays
-argos.nparray_saver('altitude',altitude)
-argos.nparray_saver('longitude',longitude)
-argos.nparray_saver('latitude',latitude)
-argos.nparray_saver('kepler_elements',kepler_elements)
-argos.nparray_saver('tiome_hours',time_hours)
-argos.nparray_saver('cartesian_states',states_array)  # 0: time, 1-3: pos in m, 4-6: vel in m/s
+
+np.savez_compressed(os.path.join("data", orbit_name, orbit_name), alt=altitude, lon=longitude, lat=latitude, time=time_hours)  # 0: time, 1-3: pos in m, 4-6: vel in m/s
+
+# argos.nparray_saver_npz(os.path.join(orbit_name, 'altitude'),altitude)
+# argos.nparray_saver_npz(os.path.join(orbit_name, 'longitude'),longitude)
+# argos.nparray_saver_npz(os.path.join(orbit_name, 'latitude'),latitude)
+# argos.nparray_saver_npz(os.path.join(orbit_name, 'kepler_elements'),kepler_elements)
+# argos.nparray_saver_npz(os.path.join(orbit_name, 'time_hours'),time_hours)
+# argos.nparray_saver_npz(os.path.join(orbit_name, 'cartesian_states'),states_array)  # 0: time, 1-3: pos in m, 4-6: vel in m/s
+
+# argos.nparray_saver(os.path.join(orbit_name, 'altitude'),altitude)
+# argos.nparray_saver(os.path.join(orbit_name, 'longitude'),longitude)
+# argos.nparray_saver(os.path.join(orbit_name, 'latitude'),latitude)
+# argos.nparray_saver(os.path.join(orbit_name, 'kepler_elements'),kepler_elements)
+# argos.nparray_saver(os.path.join(orbit_name, 'time_hours'),time_hours)
+# argos.nparray_saver(os.path.join(orbit_name, 'cartesian_states'),states_array)  # 0: time, 1-3: pos in m, 4-6: vel in m/s
+
+# argos.nparray_saver('altitude',altitude)
+# argos.nparray_saver('latitude',latitude)
+# argos.nparray_saver('kepler_elements',kepler_elements)
+# argos.nparray_saver('tiome_hours',time_hours)
+# argos.nparray_saver('cartesian_states',states_array)  # 0: time, 1-3: pos in m, 4-6: vel in m/s
 
 # Ground track plot
 fig_track = plot_gen.track(latitude, longitude)
-argos.fig_saver('ground_track',fig_track)
+argos.fig_saver(os.path.join(orbit_name, 'ground_track'),fig_track)
 # Plot Altitude in Time
 fig_alt = plt.figure(figsize=(9, 5))
 plt.title("Altitude of FranzSat")
@@ -254,7 +292,7 @@ plt.xlabel('Time [hours]')
 plt.ylabel('Altitude [km]')
 plt.grid()
 plt.tight_layout()
-argos.fig_saver('altitude', fig_alt)
+argos.fig_saver(os.path.join(orbit_name, 'altitude'), fig_alt)
 
 
 
@@ -336,7 +374,7 @@ for ax in fig_kepl.get_axes():
     ax.set_xlim([min(time_hours), max(time_hours)])
     ax.grid()
 plt.tight_layout()
-argos.fig_saver('kepler_elements', fig_kepl)
+argos.fig_saver(os.path.join(orbit_name, 'kepler_elements'), fig_kepl)
 
 
 # ### Accelerations over time
