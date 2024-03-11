@@ -26,7 +26,7 @@ import os
 
 ## Configuration
 
-orbit_name = 'orbit_200_550_81_1s_1month'
+orbit_name = 'new_orbit'
 
 time_between_measurements = 1  # seconds don't go under 10 sec for one month of propagation otherwise it will take forever!!
 orbit_apoapsis = 550  # km
