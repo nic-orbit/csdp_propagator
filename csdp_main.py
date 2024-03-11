@@ -5,13 +5,18 @@ import os
 
 import pycode.grid_eval as ge
 
+# put the name of the orbit folder here
 orbit_name = "orbit_200_550_81_1s_1month"
 
+# choose the sampling rate (in Hz)
+sample_rate = 0.01
+
+# don't touch this :)
 file_path = os.path.join("data", orbit_name)
 load_path = os.path.join(file_path, orbit_name + '.npz')
 
 satellite_orbit = ge.SatelliteOrbit()
-satellite_orbit.read_from_files(load_path, sample_rate=0.01)
+satellite_orbit.read_from_files(load_path, sample_rate=sample_rate)
 
 deg_to_rad = np.pi / 180
 
