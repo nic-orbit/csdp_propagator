@@ -270,21 +270,12 @@ class SatelliteOrbit:
         self.points = self.points[::k]
         print('satellite orbit sampled')
 
-    def plot_altitude_slt_scatter(self, lower_bound: int = 200000, upper_bound: int = 450000):
-        # Filter altitudes within the specified bounds
-        filtered_altitudes = []
-        filtered_local_times = []
-        for i in range(len(self.altitudes)):
-            if lower_bound <= self.altitudes[i] <= upper_bound:
-                filtered_altitudes.append(self.altitudes[i])
-                filtered_local_times.append(self.local_times[i])
-
-        # Plot altitude within lower_bound and upper_bound km over local solar time
-        fig, ax = plt.subplots()
-        ax.scatter(filtered_local_times, filtered_altitudes, c='r', marker='o')
-        ax.set_xlabel('Solar Local Time')
-        ax.set_ylabel('Altitude in m')
-        plt.title('Altitude over Solar Local Time')
+    def plot_altitude_slt_scatter(self):
+        plt.plot(self.local_times, self.altitudes / 1000, marker='o', linestyle='none')
+        plt.xlabel('Local Solar Time [hours]')
+        plt.ylabel('Altitude [km]')
+        plt.title('Altitude over Local Solar Time')
+        plt.grid(True)
         plt.tight_layout()
         plt.show()
 
