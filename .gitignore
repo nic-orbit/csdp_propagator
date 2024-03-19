@@ -1,5 +1,8 @@
 #files
 test.py
 
+#folders
+pycode/__pycache__/*
+
 #file-types
 *.pyc

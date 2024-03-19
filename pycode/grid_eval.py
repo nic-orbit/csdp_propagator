@@ -372,8 +372,8 @@ class GridCoverageAnalyzer:
         im = ax.imshow(d, cmap='viridis', interpolation='nearest')
 
         # Add legend annotations
-        legend_elements = [plt.Line2D([0], [0], marker='s', color='w', label='Covered', markerfacecolor='yellow', markersize=10),
-                   plt.Line2D([0], [0], marker='s', color='w', label='Not Covered', markerfacecolor='purple', markersize=10)]
+        legend_elements = [plt.Line2D([0], [0], marker='s', color='w', label='Visited', markerfacecolor='yellow', markersize=10),
+                   plt.Line2D([0], [0], marker='s', color='w', label='Not Visited', markerfacecolor='purple', markersize=10)]
         ax.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, -0.25), ncol=2)
 
 
