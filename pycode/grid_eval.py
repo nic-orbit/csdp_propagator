@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 from typing import cast
 import pandas as pd
 import os
@@ -358,23 +359,42 @@ class GridCoverageAnalyzer:
     def plot_slt_coverage(self):
         # Plot altitude sections over solar local time
         
-        d = np.zeros((len(self.list_of_altitude_sections), 24))
+        self.d = np.zeros((len(self.list_of_altitude_sections), 24))
         
         for i, altitude_section in enumerate(self.list_of_altitude_sections):
             # print(altitude_section.slts)
             for j in altitude_section.slts:
                 # print(j)
-                d[i, int(j)] = 1
+                self.d[i, int(j)] = 1
                 
-        d = np.flipud(d) # flip matrix upside down to have lowest altitude at the bottom
+        self.d = np.flipud(self.d) # flip matrix upside down to have lowest altitude at the bottom
 
         fig, ax = plt.subplots()
-        im = ax.imshow(d, cmap='viridis', interpolation='nearest')
+        im = ax.imshow(self.d, cmap='viridis', interpolation='nearest')
 
         # Add legend annotations
-        legend_elements = [plt.Line2D([0], [0], marker='s', color='w', label='Visited', markerfacecolor='yellow', markersize=10),
-                   plt.Line2D([0], [0], marker='s', color='w', label='Not Visited', markerfacecolor='purple', markersize=10)]
-        ax.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, -0.25), ncol=2)
+        # legend_elements = [plt.Line2D([0], [0], marker='s', color='w', label='Visited', markerfacecolor='yellow', markersize=10),
+        #            plt.Line2D([0], [0], marker='s', color='w', label='Not Visited', markerfacecolor='purple', markersize=10)]
+        # get the colors of the values, according to the 
+        # colormap used by imshow
+        values = np.unique(self.d.flatten())       
+
+        if self.d.sum() == len(self.d.flatten()):
+            colors = [ "yellow"]
+            labels = [ "Visited"]
+        elif self.d.sum() == 0:
+            colors = [ "purple"]
+            labels = [ "Not Visited"]
+        else:
+            colors = [ "purple", "yellow"]
+            labels = [ "Not Visited", "Visited"]
+
+        colors = [ im.cmap(im.norm(value)) for value in values]
+
+        # create a patch (proxy artist) for every color 
+        patches = [ mpatches.Patch(color=colors[i], label=labels[i] ) for i in range(len(values)) ]
+        # put those patched as legend-handles into the legend
+        ax.legend(handles=patches, loc='upper center', bbox_to_anchor=(0.5, -0.25), ncol=2)
 
 
         plt.yticks(np.arange(len(self.list_of_altitude_sections)), [f'{int(altitude_section.h_min / 1000)} to {int(altitude_section.h_max / 1000)} km' for altitude_section in reversed(self.list_of_altitude_sections)])

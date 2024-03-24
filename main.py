@@ -26,19 +26,29 @@ import os
 
 ## Configuration
 
-orbit_name = 'new_orbit'
+orbit_name = 'orbit_0-08_frontal_area'
 
-time_between_measurements = 1  # seconds don't go under 10 sec for one month of propagation otherwise it will take forever!!
+time_between_measurements = 60  # seconds don't go under 10 sec for one month of propagation otherwise it will take forever!!
 orbit_apoapsis = 550  # km
 orbit_periapsis = 200  # km
 orbit_inclination = 81  # deg
+
+
+# Create aerodynamic coefficient interface settings, and add to vehicle
+reference_area = 0.08 # Average projection area of the sat
+drag_coefficient = 2.2 # reference_area = (4*0.3*0.1+2*0.1*0.1)/4  # Average projection area of a 3U CubeSat
+
+# Create radiation pressure settings, and add to vehicle
+reference_area_radiation = 0.08  # Average projection area of the sat
+# reference_area_radiation = (4*0.3*0.2+2*0.2*0.2)/4  # Average projection area of a 12U CubeSat
+radiation_pressure_coefficient = 2.2
 
 # Load spice kernels
 spice.load_standard_kernels()
 
 # Set simulation start and end epochs
 simulation_start_epoch = DateTime(2029, 9, 1).epoch()
-simulation_end_epoch   = DateTime(2029, 10, 1).epoch()
+simulation_end_epoch   = DateTime(2030, 4, 1).epoch()
 
 #######################
 # Input Section Stop  #
@@ -81,10 +91,6 @@ bodies.create_empty_body("FranzSat")
 
 bodies.get("FranzSat").mass = 60.0
 
-# Create aerodynamic coefficient interface settings, and add to vehicle
-reference_area = 0.4  # Average projection area of the sat
-# reference_area = (4*0.3*0.1+2*0.1*0.1)/4  # Average projection area of a 3U CubeSat
-drag_coefficient = 2.2
 aero_coefficient_settings = environment_setup.aerodynamic_coefficients.constant(
     reference_area, [drag_coefficient, 0, 0]
 )
@@ -93,10 +99,6 @@ environment_setup.add_aerodynamic_coefficient_interface(
 
 # To account for the pressure of the solar radiation on the satellite, let's add another interface. This takes a radiation pressure coefficient of 1.2, and a radiation area of 4m$^2$. This interface also accounts for the variation in pressure cause by the shadow of Earth.
 
-# Create radiation pressure settings, and add to vehicle
-reference_area_radiation = 0.4  # Average projection area of the sat
-# reference_area_radiation = (4*0.3*0.1+2*0.1*0.1)/4  # Average projection area of a 3U CubeSat
-radiation_pressure_coefficient = 2.2
 occulting_bodies_dict = dict()
 occulting_bodies_dict[ "Sun" ] = [ "Earth" ]
 vehicle_target_settings = environment_setup.radiation_pressure.cannonball_radiation_target(

@@ -6,8 +6,7 @@ import os
 import pycode.grid_eval as ge
 
 # put the name of the orbit folder here
-orbit_name = "orbit_200_550_81_1s_1month"
-
+orbit_name = "200_550_81_100s_3months"
 # choose the sampling rate (in Hz)
 sample_rate = 0.01
 
@@ -37,6 +36,10 @@ print(coverage_table[['Altitude Section', 'Number of Points', 'Coverage Percenta
 
 my_analyzer.write_coverage_percentage_to_file(file_path)
 
-# my_analyzer.plot_grid_coverage()
+my_analyzer.plot_grid_coverage()
 
 my_analyzer.plot_slt_coverage()
+
+print(set(satellite_orbit.local_times))
+
+print(my_analyzer.d)
