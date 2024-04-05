@@ -6,3 +6,4 @@ pycode/__pycache__/*
 
 #file-types
 *.pyc
+*.flake8

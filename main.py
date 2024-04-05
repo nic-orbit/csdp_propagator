@@ -26,17 +26,22 @@ import os
 
 ## Configuration
 
-orbit_name = 'orbit_0-08_frontal_area'
+orbit_name = "orbit_6month"
 
-time_between_measurements = 60  # seconds don't go under 10 sec for one month of propagation otherwise it will take forever!!
+time_between_measurements = 10  # seconds don't go under 10 sec for one month of propagation otherwise it will take forever!!
 orbit_apoapsis = 550  # km
 orbit_periapsis = 200  # km
-orbit_inclination = 81  # deg
+orbit_inclination = 89  # deg
 
+orbit_true_anomaly = 0  # true anomaly - deg
+orbit_raan = 45  # right ascension of ascending node - deg
+orbit_aop = 90  # argument of periapsis - deg
+
+mass = 20  # kg
 
 # Create aerodynamic coefficient interface settings, and add to vehicle
-reference_area = 0.08 # Average projection area of the sat
-drag_coefficient = 2.2 # reference_area = (4*0.3*0.1+2*0.1*0.1)/4  # Average projection area of a 3U CubeSat
+reference_area = 0.05  # Average projection area of the sat
+drag_coefficient = 2.2  # Drag coefficient of the sat
 
 # Create radiation pressure settings, and add to vehicle
 reference_area_radiation = 0.08  # Average projection area of the sat
@@ -47,12 +52,15 @@ radiation_pressure_coefficient = 2.2
 spice.load_standard_kernels()
 
 # Set simulation start and end epochs
-simulation_start_epoch = DateTime(2029, 9, 1).epoch()
-simulation_end_epoch   = DateTime(2030, 4, 1).epoch()
+simulation_start_epoch = DateTime(2029, 11, 1).epoch()
+simulation_end_epoch = DateTime(2030, 5, 1).epoch()
 
 #######################
 # Input Section Stop  #
 #######################
+
+print("Orbit name: ", orbit_name)
+print(" starting simulation...")
 
 # Create output directory
 os.makedirs(os.path.join("data", orbit_name), exist_ok=True)
@@ -71,12 +79,13 @@ global_frame_orientation = "J2000"
 
 # Create default body settings, usually from `spice`.
 body_settings = environment_setup.get_default_body_settings(
-    bodies_to_create,
-    global_frame_origin,
-    global_frame_orientation)
+    bodies_to_create, global_frame_origin, global_frame_orientation
+)
 
 # Use nrlmsise00
-body_settings.get( "Earth" ).atmosphere_settings = environment_setup.atmosphere.nrlmsise00()
+body_settings.get("Earth").atmosphere_settings = (
+    environment_setup.atmosphere.nrlmsise00()
+)
 
 # Create system of selected celestial bodies
 bodies = environment_setup.create_system_of_bodies(body_settings)
@@ -89,22 +98,27 @@ Let's now create the 400kg satellite for which the perturbed orbit around Earth 
 # Create vehicle objects.
 bodies.create_empty_body("FranzSat")
 
-bodies.get("FranzSat").mass = 60.0
+bodies.get("FranzSat").mass = mass
 
 aero_coefficient_settings = environment_setup.aerodynamic_coefficients.constant(
     reference_area, [drag_coefficient, 0, 0]
 )
 environment_setup.add_aerodynamic_coefficient_interface(
-    bodies, "FranzSat", aero_coefficient_settings)
+    bodies, "FranzSat", aero_coefficient_settings
+)
 
 # To account for the pressure of the solar radiation on the satellite, let's add another interface. This takes a radiation pressure coefficient of 1.2, and a radiation area of 4m$^2$. This interface also accounts for the variation in pressure cause by the shadow of Earth.
 
 occulting_bodies_dict = dict()
-occulting_bodies_dict[ "Sun" ] = [ "Earth" ]
-vehicle_target_settings = environment_setup.radiation_pressure.cannonball_radiation_target(
-    reference_area_radiation, radiation_pressure_coefficient, occulting_bodies_dict )
+occulting_bodies_dict["Sun"] = ["Earth"]
+vehicle_target_settings = (
+    environment_setup.radiation_pressure.cannonball_radiation_target(
+        reference_area_radiation, radiation_pressure_coefficient, occulting_bodies_dict
+    )
+)
 environment_setup.add_radiation_pressure_target_model(
-    bodies, "FranzSat", vehicle_target_settings)
+    bodies, "FranzSat", vehicle_target_settings
+)
 
 ## Propagation setup
 
@@ -120,15 +134,13 @@ central_bodies = ["Earth"]
 accelerations_settings_delfi_c3 = dict(
     Sun=[
         propagation_setup.acceleration.radiation_pressure(),
-        propagation_setup.acceleration.point_mass_gravity()
+        propagation_setup.acceleration.point_mass_gravity(),
     ],
     Earth=[
         propagation_setup.acceleration.spherical_harmonic_gravity(5, 5),
-        propagation_setup.acceleration.aerodynamic()
+        propagation_setup.acceleration.aerodynamic(),
     ],
-    Moon=[
-        propagation_setup.acceleration.point_mass_gravity()
-    ],
+    Moon=[propagation_setup.acceleration.point_mass_gravity()],
     # Mars=[
     #     propagation_setup.acceleration.point_mass_gravity()
     # ],
@@ -142,10 +154,8 @@ acceleration_settings = {"FranzSat": accelerations_settings_delfi_c3}
 
 # Create acceleration models.
 acceleration_models = propagation_setup.create_acceleration_models(
-    bodies,
-    acceleration_settings,
-    bodies_to_propagate,
-    central_bodies)
+    bodies, acceleration_settings, bodies_to_propagate, central_bodies
+)
 
 ### Define the initial state
 
@@ -155,14 +165,14 @@ acceleration_models = propagation_setup.create_acceleration_models(
 Re = 6371000  # Earth radius in m
 aph = orbit_apoapsis * 10**3 + Re  # m
 per = orbit_periapsis * 10**3 + Re  # m
-sma = (aph+per)/2  # semi-major axis - m
-e = (aph-per)/(aph+per)  # eccentricity
+sma = (aph + per) / 2  # semi-major axis - m
+e = (aph - per) / (aph + per)  # eccentricity
 i = np.deg2rad(orbit_inclination)  # inclination - rad
-ta = np.deg2rad(0)  # true anomaly - rad
-raan = np.deg2rad(0)  # right ascension of ascending node - rad
-aop = np.deg2rad(0)  # argument of periapsis - rad
+ta = np.deg2rad(orbit_true_anomaly)  # true anomaly - rad
+raan = np.deg2rad(orbit_raan)  # right ascension of ascending node - rad
+aop = np.deg2rad(orbit_aop)  # argument of periapsis - rad
 # Definition of initial state
-mu_e = body_settings.get('Earth').gravity_field_settings.gravitational_parameter
+mu_e = body_settings.get("Earth").gravity_field_settings.gravitational_parameter
 initial_kepl = np.array([sma, e, i, aop, raan, ta])
 initial_state = keplerian_to_cartesian(initial_kepl, mu_e)
 
@@ -175,13 +185,15 @@ dependent_variables_to_save = [
     propagation_setup.dependent_variable.keplerian_state("FranzSat", "Earth"),
     propagation_setup.dependent_variable.latitude("FranzSat", "Earth"),
     propagation_setup.dependent_variable.longitude("FranzSat", "Earth"),
-    propagation_setup.dependent_variable.altitude("FranzSat", "Earth")
+    propagation_setup.dependent_variable.altitude("FranzSat", "Earth"),
 ]
 
 ### Create the propagator settings
 
 # Create termination settings
-termination_condition = propagation_setup.propagator.time_termination(simulation_end_epoch)
+termination_condition = propagation_setup.propagator.time_termination(
+    simulation_end_epoch
+)
 
 # Create numerical integrator settings
 # fixed_step_size = 10.0
@@ -197,7 +209,7 @@ propagator_settings = propagation_setup.propagator.translational(
     simulation_start_epoch,
     integrator_settings,
     termination_condition,
-    output_variables=dependent_variables_to_save
+    output_variables=dependent_variables_to_save,
 )
 
 ## Propagate the orbit
@@ -253,15 +265,23 @@ Let's then plot the ground track of the satellite in its first 3 hours. This mak
 """
 
 # Plot ground track for a period of 3 hours
-time_hours = (dep_vars_array[:,0]-dep_vars_array[0,0])/3600  # Time in hours since beginning of propagation
-kepler_elements = dep_vars_array[:,1:7]  # Keplerian elements in m and rad
-latitude = dep_vars_array[:,7]  # Latitude in rad
-longitude = dep_vars_array[:,8]  # Longitude in rad
-altitude = dep_vars_array[:,9]  # Altitude in m
+time_hours = (
+    dep_vars_array[:, 0] - dep_vars_array[0, 0]
+) / 3600  # Time in hours since beginning of propagation
+kepler_elements = dep_vars_array[:, 1:7]  # Keplerian elements in m and rad
+latitude = dep_vars_array[:, 7]  # Latitude in rad
+longitude = dep_vars_array[:, 8]  # Longitude in rad
+altitude = dep_vars_array[:, 9]  # Altitude in m
 
 # Save arrays
 
-np.savez_compressed(os.path.join("data", orbit_name, orbit_name), alt=altitude, lon=longitude, lat=latitude, time=time_hours)  # 0: time, 1-3: pos in m, 4-6: vel in m/s
+np.savez_compressed(
+    os.path.join("data", orbit_name, orbit_name),
+    alt=altitude,
+    lon=longitude,
+    lat=latitude,
+    time=time_hours,
+)  # 0: time, 1-3: pos in m, 4-6: vel in m/s
 
 # argos.nparray_saver_npz(os.path.join(orbit_name, 'altitude'),altitude)
 # argos.nparray_saver_npz(os.path.join(orbit_name, 'longitude'),longitude)
@@ -285,17 +305,16 @@ np.savez_compressed(os.path.join("data", orbit_name, orbit_name), alt=altitude, 
 
 # Ground track plot
 fig_track = plot_gen.track(latitude, longitude)
-argos.fig_saver(os.path.join(orbit_name, 'ground_track'),fig_track)
+argos.fig_saver(os.path.join(orbit_name, "ground_track"), fig_track)
 # Plot Altitude in Time
 fig_alt = plt.figure(figsize=(9, 5))
 plt.title("Altitude of FranzSat")
-plt.plot(time_hours, altitude/1000)
-plt.xlabel('Time [hours]')
-plt.ylabel('Altitude [km]')
+plt.plot(time_hours, altitude / 1000)
+plt.xlabel("Time [hours]")
+plt.ylabel("Altitude [km]")
 plt.grid()
 plt.tight_layout()
-argos.fig_saver(os.path.join(orbit_name, 'altitude'), fig_alt)
-
+argos.fig_saver(os.path.join(orbit_name, "altitude"), fig_alt)
 
 
 # hours = 24*3
@@ -338,45 +357,45 @@ Let's now plot each of the 6 Kepler element as a function of time, also as saved
 
 # Plot Kepler elements as a function of time
 fig_kepl, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(3, 2, figsize=(9, 12))
-fig_kepl.suptitle('Evolution of Kepler elements over the course of the propagation.')
+fig_kepl.suptitle("Evolution of Kepler elements over the course of the propagation.")
 
 # Semi-major Axis
-semi_major_axis = kepler_elements[:,0] / 1e3
+semi_major_axis = kepler_elements[:, 0] / 1e3
 ax1.plot(time_hours, semi_major_axis)
-ax1.set_ylabel('Semi-major axis [km]')
+ax1.set_ylabel("Semi-major axis [km]")
 
 # Eccentricity
-eccentricity = kepler_elements[:,1]
+eccentricity = kepler_elements[:, 1]
 ax2.plot(time_hours, eccentricity)
-ax2.set_ylabel('Eccentricity [-]')
+ax2.set_ylabel("Eccentricity [-]")
 
 # Inclination
-inclination = np.rad2deg(kepler_elements[:,2])
+inclination = np.rad2deg(kepler_elements[:, 2])
 ax3.plot(time_hours, inclination)
-ax3.set_ylabel('Inclination [deg]')
+ax3.set_ylabel("Inclination [deg]")
 
 # Argument of Periapsis
-argument_of_periapsis = np.rad2deg(np.unwrap(kepler_elements[:,3]))
+argument_of_periapsis = np.rad2deg(np.unwrap(kepler_elements[:, 3]))
 ax4.plot(time_hours, argument_of_periapsis)
-ax4.set_ylabel('Argument of Periapsis [deg]')
+ax4.set_ylabel("Argument of Periapsis [deg]")
 
 # Right Ascension of the Ascending Node
-raan = np.rad2deg(kepler_elements[:,4])
+raan = np.rad2deg(kepler_elements[:, 4])
 ax5.plot(time_hours, raan)
-ax5.set_ylabel('RAAN [deg]')
+ax5.set_ylabel("RAAN [deg]")
 
 # True Anomaly
-true_anomaly = np.rad2deg(kepler_elements[:,5])
+true_anomaly = np.rad2deg(kepler_elements[:, 5])
 ax6.scatter(time_hours, true_anomaly, s=1)
-ax6.set_ylabel('True Anomaly [deg]')
+ax6.set_ylabel("True Anomaly [deg]")
 ax6.set_yticks(np.arange(0, 361, step=60))
 
 for ax in fig_kepl.get_axes():
-    ax.set_xlabel('Time [hr]')
+    ax.set_xlabel("Time [hr]")
     ax.set_xlim([min(time_hours), max(time_hours)])
     ax.grid()
 plt.tight_layout()
-argos.fig_saver(os.path.join(orbit_name, 'kepler_elements'), fig_kepl)
+argos.fig_saver(os.path.join(orbit_name, "kepler_elements"), fig_kepl)
 
 
 # ### Accelerations over time
